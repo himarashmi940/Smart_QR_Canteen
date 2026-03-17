@@ -1,0 +1,180 @@
+{
+  "name": "Smart Canteen - Order Ready",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-ready",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "WebhookOrderReady",
+      "name": "Webhook - Order Ready",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        320,
+        280
+      ],
+      "webhookId": "smart-canteen-order-ready"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "orderId",
+              "name": "order_id",
+              "type": "string",
+              "value": "={{$json.body.order_id || $json.order_id}}"
+            },
+            {
+              "id": "orderNumber",
+              "name": "order_number",
+              "type": "number",
+              "value": "={{Number($json.body.order_number || $json.order_number)}}"
+            },
+            {
+              "id": "title",
+              "name": "event_title",
+              "type": "string",
+              "value": "={{'Canteen Order #' + (Number($json.body.order_number || $json.order_number) || ''))}}"
+            },
+            {
+              "id": "startTime",
+              "name": "start_time",
+              "type": "string",
+              "value": "={{new Date().toISOString()}}"
+            },
+            {
+              "id": "endTime",
+              "name": "end_time",
+              "type": "string",
+              "value": "={{new Date(Date.now() + 10 * 60 * 1000).toISOString()}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "NormalizePayload",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        560,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "id"
+        },
+        "start": "={{$json.start_time}}",
+        "end": "={{$json.end_time}}",
+        "summary": "={{$json.event_title}}",
+        "description": "={{'Order ready. Order ID: ' + $json.order_id}}",
+        "additionalFields": {
+          "visibility": "private"
+        }
+      },
+      "id": "GoogleCalendarCreate",
+      "name": "Google Calendar - Create Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        820,
+        280
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Google Calendar OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "WaitNode",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{({ ok: true, order_id: $json.order_id, order_number: $json.order_number })}}"
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Order Ready": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar - Create Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar - Create Event": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  ],
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+}
+

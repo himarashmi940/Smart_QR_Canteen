@@ -1,0 +1,278 @@
+{
+  "name": "Smart Canteen - Order Ready WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-ready-whatsapp",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "WebhookOrderReadyWhatsApp",
+      "name": "Webhook - Order Ready WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        280,
+        300
+      ],
+      "webhookId": "smart-canteen-order-ready-whatsapp"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "orderId",
+              "name": "order_id",
+              "type": "string",
+              "value": "={{$json.body.order_id || $json.order_id}}"
+            },
+            {
+              "id": "orderNumber",
+              "name": "order_number",
+              "type": "number",
+              "value": "={{Number($json.body.order_number || $json.order_number)}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "NormalizePayload",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.BACKEND_BASE_URL + '/api/orders/' + $json.order_id}}",
+        "authentication": "none",
+        "options": {
+          "response": {
+            "responseFormat": "json"
+          }
+        }
+      },
+      "id": "FetchOrder",
+      "name": "Fetch Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "hasWhatsapp",
+              "leftValue": "={{$json.whatsapp_number}}",
+              "rightValue": "",
+              "operator": "notEmpty"
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "IfHasWhatsApp",
+      "name": "If WhatsApp number",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "to",
+              "name": "to",
+              "type": "string",
+              "value": "={{String($json.whatsapp_number).replace(/\\D/g,'')}}"
+            },
+            {
+              "id": "text",
+              "name": "text",
+              "type": "string",
+              "value": "={{'Order #' + $json.order_number + ' is ready. Please collect your food.'}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "BuildMessage",
+      "name": "Build Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{'https://graph.facebook.com/v20.0/' + $env.WA_PHONE_NUMBER_ID + '/messages'}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{'Bearer ' + $env.WA_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{$json.to}}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{({ body: $json.text })}}"
+            }
+          ]
+        },
+        "options": {
+          "bodyContentType": "json",
+          "response": {
+            "responseFormat": "json"
+          }
+        }
+      },
+      "id": "SendWhatsApp",
+      "name": "Send WhatsApp (Cloud API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1480,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{({ ok: true })}}"
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1480,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Order Ready WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Fetch Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Order": {
+      "main": [
+        [
+          {
+            "node": "If WhatsApp number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If WhatsApp number": {
+      "main": [
+        [
+          {
+            "node": "Build Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp (Cloud API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp (Cloud API)": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+}
+
