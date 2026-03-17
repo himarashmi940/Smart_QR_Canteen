@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## Smart QR-Based Canteen Ordering System
 
 ### Folder structure
@@ -66,3 +67,7 @@ Use the production webhook URL for the Webhook node path `order-ready` and set i
 
 - `backend/.env` `N8N_WEBHOOK_URL=<your n8n webhook url>`
 
+=======
+# CODE4
+Smart QR-based canteen system where students scan, order digitally, and track status in real time. Staff manage orders via dashboard, and when ready, automated voice announcements are triggered using n8n. Reduces queues, saves time, and improves canteen efficiency with a full-stack solution.
+>>>>>>> 460851a6410b84d696b477de9d926fbc285a9e70

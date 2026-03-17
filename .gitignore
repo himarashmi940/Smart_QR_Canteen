@@ -1,0 +1,14 @@
+# Node modules (VERY IMPORTANT)
+node_modules/
+
+# Environment files
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Optional (good practice)
+venv/
+dist/
+build/
